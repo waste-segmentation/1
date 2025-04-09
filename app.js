@@ -13,48 +13,42 @@ function updateScore(type) {
 
 const html5QrCode = new Html5Qrcode("reader");
 
-function startCamera(constraints) {
-  html5QrCode.start(
-    constraints,
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    (decodedText) => {
-      console.log(`Scanned: ${decodedText}`);
-      if (decodedText === "organic" || decodedText === "non-organic") {
-        updateScore(decodedText);
-      } else {
-        alert("Invalid QR code.");
-      }
-    },
-    (errorMessage) => {
-      console.warn(errorMessage);
-    }
-  ).catch(err => {
-    console.error("Failed to start camera:", err);
-  });
-}
-
-// Try forcing environment-facing camera first
-navigator.mediaDevices.getUserMedia({
-  video: { facingMode: { exact: "environment" } }
-}).then(stream => {
-  // Stop immediately — just testing if it's available
-  stream.getTracks().forEach(track => track.stop());
-  startCamera({ facingMode: { exact: "environment" } });
-}).catch(err => {
-  console.warn("Environment camera not available, falling back to auto-detection");
-
-  Html5Qrcode.getCameras().then(devices => {
+Html5Qrcode.getCameras()
+  .then((devices) => {
     if (devices && devices.length) {
-      const backCamera = devices.find(device =>
+      // Try to find the rear camera
+      const backCam = devices.find((device) =>
         device.label.toLowerCase().includes("back") ||
         device.label.toLowerCase().includes("environment")
       );
-      const deviceId = backCamera ? backCamera.id : devices[0].id;
-      startCamera({ deviceId: { exact: deviceId } });
+
+      const cameraId = backCam ? backCam.id : devices[0].id;
+
+      html5QrCode
+        .start(
+          { deviceId: { exact: cameraId } },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            console.log(`Scanned: ${decodedText}`);
+            if (decodedText === "organic" || decodedText === "non-organic") {
+              updateScore(decodedText);
+            } else {
+              alert("Invalid QR code.");
+            }
+          },
+          (errorMessage) => {
+            console.warn(`QR Scan error: ${errorMessage}`);
+          }
+        )
+        .catch((err) => {
+          console.error("Camera start error:", err);
+          alert("Failed to start the camera. Please allow camera access.");
+        });
     } else {
-      alert("No cameras found.");
+      alert("No cameras found on this device.");
     }
-  }).catch(e => {
-    console.error("Camera error:", e);
+  })
+  .catch((err) => {
+    console.error("Camera access error:", err);
+    alert("Unable to access the camera.");
   });
-});
