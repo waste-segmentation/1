@@ -1,8 +1,6 @@
-// Get current score or set to 0
 let score = parseInt(localStorage.getItem("userScore")) || 0;
 document.getElementById("score").innerText = `Your Score: ${score}`;
 
-// Function to update score
 function updateScore(type) {
   if (type === "organic") {
     score += 10;
@@ -13,27 +11,36 @@ function updateScore(type) {
   document.getElementById("score").innerText = `Your Score: ${score}`;
 }
 
-// Start QR code scanner using rear camera
 const html5QrCode = new Html5Qrcode("reader");
 
-html5QrCode.start(
-  { facingMode: { exact: "environment" } }, // rear camera
-  {
-    fps: 10,
-    qrbox: { width: 250, height: 250 }
-  },
-  (decodedText, decodedResult) => {
-    console.log(`Scanned: ${decodedText}`);
-    if (decodedText === "organic" || decodedText === "non-organic") {
-      updateScore(decodedText);
-    } else {
-      alert("Invalid QR code content.");
-    }
-  },
-  (errorMessage) => {
-    // optional: handle scan errors
-    console.warn(errorMessage);
+Html5Qrcode.getCameras().then(devices => {
+  if (devices && devices.length) {
+    // Try to find a camera labeled as "back" or "environment"
+    const backCamera = devices.find(device =>
+      device.label.toLowerCase().includes("back") ||
+      device.label.toLowerCase().includes("environment")
+    );
+
+    const selectedDeviceId = backCamera ? backCamera.id : devices[0].id;
+
+    html5QrCode.start(
+      { deviceId: { exact: selectedDeviceId } },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        console.log(`Scanned: ${decodedText}`);
+        if (decodedText === "organic" || decodedText === "non-organic") {
+          updateScore(decodedText);
+        } else {
+          alert("Invalid QR code content.");
+        }
+      },
+      (errorMessage) => {
+        console.warn(errorMessage);
+      }
+    ).catch(err => {
+      console.error("Camera start failed:", err);
+    });
   }
-).catch((err) => {
-  console.error("Camera start failed", err);
+}).catch(err => {
+  console.error("Failed to get cameras", err);
 });
