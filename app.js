@@ -1,34 +1,39 @@
-let points = localStorage.getItem('points') || 0;
-document.getElementById("points").innerText = `Total Points: ${points}`;
+// Get current score or set to 0
+let score = parseInt(localStorage.getItem("userScore")) || 0;
+document.getElementById("score").innerText = `Your Score: ${score}`;
 
-let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-scanner.addListener('scan', function (content) {
-  let message = document.getElementById("message");
-  let value = 0;
-
-  if (content.toLowerCase().includes("organic")) {
-    value = 10;
-    message.innerText = "Organic waste scanned! +10 points";
-  } else if (content.toLowerCase().includes("non-organic")) {
-    value = 5;
-    message.innerText = "Non-organic waste scanned! +5 points";
-  } else {
-    message.innerText = "Invalid QR code";
-    return;
+// Function to update score
+function updateScore(type) {
+  if (type === "organic") {
+    score += 10;
+  } else if (type === "non-organic") {
+    score += 5;
   }
+  localStorage.setItem("userScore", score);
+  document.getElementById("score").innerText = `Your Score: ${score}`;
+}
 
-  points = parseInt(points) + value;
-  localStorage.setItem('points', points);
-  document.getElementById("points").innerText = `Total Points: ${points}`;
-});
+// Start QR code scanner using rear camera
+const html5QrCode = new Html5Qrcode("reader");
 
-Instascan.Camera.getCameras().then(function (cameras) {
-  if (cameras.length > 0) {
-    scanner.start(cameras[0]);
-  } else {
-    alert('No cameras found.');
+html5QrCode.start(
+  { facingMode: { exact: "environment" } }, // rear camera
+  {
+    fps: 10,
+    qrbox: { width: 250, height: 250 }
+  },
+  (decodedText, decodedResult) => {
+    console.log(`Scanned: ${decodedText}`);
+    if (decodedText === "organic" || decodedText === "non-organic") {
+      updateScore(decodedText);
+    } else {
+      alert("Invalid QR code content.");
+    }
+  },
+  (errorMessage) => {
+    // optional: handle scan errors
+    console.warn(errorMessage);
   }
-}).catch(function (e) {
-  console.error(e);
+).catch((err) => {
+  console.error("Camera start failed", err);
 });
-
