@@ -13,34 +13,48 @@ function updateScore(type) {
 
 const html5QrCode = new Html5Qrcode("reader");
 
-Html5Qrcode.getCameras().then(devices => {
-  if (devices && devices.length) {
-    // Try to find a camera labeled as "back" or "environment"
-    const backCamera = devices.find(device =>
-      device.label.toLowerCase().includes("back") ||
-      device.label.toLowerCase().includes("environment")
-    );
-
-    const selectedDeviceId = backCamera ? backCamera.id : devices[0].id;
-
-    html5QrCode.start(
-      { deviceId: { exact: selectedDeviceId } },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        console.log(`Scanned: ${decodedText}`);
-        if (decodedText === "organic" || decodedText === "non-organic") {
-          updateScore(decodedText);
-        } else {
-          alert("Invalid QR code content.");
-        }
-      },
-      (errorMessage) => {
-        console.warn(errorMessage);
+function startCamera(constraints) {
+  html5QrCode.start(
+    constraints,
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decodedText) => {
+      console.log(`Scanned: ${decodedText}`);
+      if (decodedText === "organic" || decodedText === "non-organic") {
+        updateScore(decodedText);
+      } else {
+        alert("Invalid QR code.");
       }
-    ).catch(err => {
-      console.error("Camera start failed:", err);
-    });
-  }
+    },
+    (errorMessage) => {
+      console.warn(errorMessage);
+    }
+  ).catch(err => {
+    console.error("Failed to start camera:", err);
+  });
+}
+
+// Try forcing environment-facing camera first
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { exact: "environment" } }
+}).then(stream => {
+  // Stop immediately — just testing if it's available
+  stream.getTracks().forEach(track => track.stop());
+  startCamera({ facingMode: { exact: "environment" } });
 }).catch(err => {
-  console.error("Failed to get cameras", err);
+  console.warn("Environment camera not available, falling back to auto-detection");
+
+  Html5Qrcode.getCameras().then(devices => {
+    if (devices && devices.length) {
+      const backCamera = devices.find(device =>
+        device.label.toLowerCase().includes("back") ||
+        device.label.toLowerCase().includes("environment")
+      );
+      const deviceId = backCamera ? backCamera.id : devices[0].id;
+      startCamera({ deviceId: { exact: deviceId } });
+    } else {
+      alert("No cameras found.");
+    }
+  }).catch(e => {
+    console.error("Camera error:", e);
+  });
 });
