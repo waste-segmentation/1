@@ -12,43 +12,49 @@ function updateScore(type) {
 }
 
 const html5QrCode = new Html5Qrcode("reader");
+let currentFacingMode = "environment"; // Start with rear camera
+let isScannerRunning = false;
 
-Html5Qrcode.getCameras()
-  .then((devices) => {
-    if (devices && devices.length) {
-      // Try to find the rear camera
-      const backCam = devices.find((device) =>
-        device.label.toLowerCase().includes("back") ||
-        device.label.toLowerCase().includes("environment")
-      );
+// Function to start the scanner with a given camera
+function startScanner(facingMode) {
+  if (isScannerRunning) {
+    html5QrCode.stop().then(() => {
+      isScannerRunning = false;
+      startScanner(facingMode);
+    });
+    return;
+  }
 
-      const cameraId = backCam ? backCam.id : devices[0].id;
-
-      html5QrCode
-        .start(
-          { deviceId: { exact: cameraId } },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            console.log(`Scanned: ${decodedText}`);
-            if (decodedText === "organic" || decodedText === "non-organic") {
-              updateScore(decodedText);
-            } else {
-              alert("Invalid QR code.");
-            }
-          },
-          (errorMessage) => {
-            console.warn(`QR Scan error: ${errorMessage}`);
-          }
-        )
-        .catch((err) => {
-          console.error("Camera start error:", err);
-          alert("Failed to start the camera. Please allow camera access.");
-        });
-    } else {
-      alert("No cameras found on this device.");
+  html5QrCode.start(
+    { facingMode: { exact: facingMode } },
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    },
+    (decodedText) => {
+      console.log(`Scanned: ${decodedText}`);
+      if (decodedText === "organic" || decodedText === "non-organic") {
+        updateScore(decodedText);
+      } else {
+        alert("Invalid QR code content.");
+      }
+    },
+    (errorMessage) => {
+      console.warn(errorMessage);
     }
-  })
-  .catch((err) => {
-    console.error("Camera access error:", err);
-    alert("Unable to access the camera.");
+  ).then(() => {
+    isScannerRunning = true;
+  }).catch((err) => {
+    console.error("Camera start failed", err);
+    alert("Failed to access camera.");
   });
+}
+
+// Initial start with rear camera
+startScanner(currentFacingMode);
+
+// Switch camera when button is clicked
+document.getElementById("switchCamera").addEventListener("click", () => {
+  currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+  startScanner(currentFacingMode);
+});
