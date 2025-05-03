@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eco Reward System</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #56ab2f, #a8e063);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 12px;
+      width: 80%;
+      font-size: 18px;
+      border: 2px solid #56ab2f;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 25px;
+      background-color: #56ab2f;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #3e8e41;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .wallet {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Eco Reward System</h1>
+    <input type="text" id="codeInput" maxlength="4" placeholder="Enter 4-digit code" />
+    <br>
+    <button onclick="submitCode()">Submit</button>
+    <div class="message" id="message"></div>
+    <div class="wallet" id="wallet">Your Points: 0</div>
+  </div>
+
+  <script>
+    function getPoints() {
+      return parseInt(localStorage.getItem("ecoPoints")) || 0;
+    }
+
+    function setPoints(points) {
+      localStorage.setItem("ecoPoints", points);
+      document.getElementById("wallet").innerText = `Your Points: ${points}`;
+    }
+
+    function isNumeric(value) {
+      return /^\d+$/.test(value);
+    }
+
+    function submitCode() {
+      const code = document.getElementById("codeInput").value.trim();
+      const message = document.getElementById("message");
+
+      if (code.length !== 4 || !isNumeric(code)) {
+        message.innerText = "Invalid coupon code";
+        return;
+      }
+
+      const codeNum = parseInt(code);
+      let points = getPoints();
+
+      if (codeNum <= 5000 && codeNum % 2 === 1) {
+        points += 10;
+        message.innerText = "Organic waste detected. +10 points!";
+      } else if (codeNum >= 5002 && codeNum <= 9998 && codeNum % 2 === 0) {
+        points += 5;
+        message.innerText = "Non-organic waste detected. +5 points!";
+      } else {
+        message.innerText = "Invalid coupon code";
+        return;
+      }
+
+      setPoints(points);
+      document.getElementById("codeInput").value = "";
+    }
+
+    // Load points on page load
+    window.onload = () => {
+      setPoints(getPoints());
+    };
+  </script>
+</body>
+</html>
